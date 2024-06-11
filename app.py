@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
-import linktransformer as lt
+import numpy as np
+from valentine import valentine_match
+from valentine.algorithms import Coma
 
 
 # Function to convert DataFrame to CSV for download
@@ -8,14 +10,11 @@ def convert_df_to_csv(df):
     return df.to_csv().encode('utf-8')
 
 
-st.title('Merge Dataframes using LinkTransformer')
-st.write(
-    'LinkTransformer supports several AI-powered data wrangling operations - here is an example that allows you to use LLMs to merge data.')
+st.title('IOT数据集成与融合')
+st.write('通过实体匹配等算法对数据进行集成与融合')
 
 
-# Function to load DataFrame
 def load_dataframe(upload):
-    ##if csv is uploaded use read_csv to load the data , otherwise use read_excel
     if upload is not None:
         if upload.name.endswith('csv'):
             return pd.read_csv(upload)
@@ -25,68 +24,111 @@ def load_dataframe(upload):
         return pd.DataFrame()
 
 
-# Options for DataFrame 1
-df1_upload = st.file_uploader("Upload DataFrame 1 (CSV)", type=['csv'], key='df1_upload')
+st.divider()
+st.header("上传数据")
 
-# Options for DataFrame 2
-df2_upload = st.file_uploader("Upload DataFrame 2 (CSV)", type=['csv'], key='df2_upload')
+# 上传第一个数据
+df1_upload = st.file_uploader("上传物联网数据 CSV文件", type=['csv'], key='df1_upload')
 
-# Load and display the DataFrames
 df1 = load_dataframe(df1_upload)
-df2 = load_dataframe(df2_upload)
-
 if df1 is not None:
-    st.write("DataFrame 1 Preview:")
+    st.write("所上传的csv文件1 数据如下:")
     st.dataframe(df1.head())
 
+# 上传第二个数据
+df2_upload = st.file_uploader("上传物联网数据 CSV文件", type=['csv'], key='df2_upload')
+
+df2 = load_dataframe(df2_upload)
+
 if df2 is not None:
-    st.write("DataFrame 2 Preview:")
+    st.write("所上传的csv文件1 数据如下:")
     st.dataframe(df2.head())
 
-# Model selection
-model_path = st.text_input("Model path (HuggingFace)", value="all-MiniLM-L6-v2")
-st.write(
-    "We have trained several record linkage models! Just copy the Hugging Face model path from the [model zoo](https://linktransformer.github.io/).")
-##More on model selection available on https://linktransformer.github.io/
+st.divider()
+st.header("数据融合")
 
 if df1_upload is not None and df2_upload is not None:
-    # Checkbox for columns to match on
     if not df1.empty and not df2.empty:
-        columns_df1 = df1.columns.tolist()
-        columns_df2 = df2.columns.tolist()
-        selected_columns_df1 = st.multiselect("Select columns from DataFrame 1 to match on:", columns_df1,
-                                              default=columns_df1[0])
-        selected_columns_df2 = st.multiselect("Select columns from DataFrame 2 to match on:", columns_df2,
-                                              default=columns_df2[0])
+        # 进行实体匹配，获取两个数据集所匹配到的实体
+        st.subheader("实体匹配")
 
-        # Perform merge
-        if st.button("Merge DataFrames"):
-            model = lt.LinkTransformer(model_path)
-            df_lm_matched = lt.merge(df1, df2, merge_type='1:m', on=None, model=model, left_on=selected_columns_df1,
-                                     right_on=selected_columns_df2)
-            st.write("Merged DataFrame Preview:")
-            st.dataframe(df_lm_matched.head())
+        st.write("请选择实体匹配的权重")
+        weight = st.slider("权重", 0.0, 1.0, 0.5)
 
-            # Download button for merged DataFrame
-            csv = convert_df_to_csv(df_lm_matched)
+        match_col = []
+
+        # 进行实体匹配算法
+
+        matcher = Coma(use_instances=True)
+        matches = valentine_match(df1, df2, matcher)
+        for match in matches:
+            if matches[match] > weight:
+                match_col.append((match[0][1], match[1][1]))
+
+        if match_col:
+            default_value = match_col  # 使用第一个元素作为默认值
+        else:
+            default_value = None  # 如果 match_col 为空，则默认值为 None
+
+        # 使用默认值（如果 match_col 不为空，则设置为第一个元素，否则为 None）
+        selected_match_col = st.multiselect(
+            "选择所匹配到的实体列",
+            options=match_col,
+            default=default_value
+        )
+
+        st.divider()
+
+        # 数据融合
+        if st.button("融合数据"):
+            st.subheader("数据融合")
+
+            fused_records = []
+
+            all_rows = pd.concat([df1, df2], ignore_index=True)
+
+            for idx in range(len(all_rows)):
+                if idx < len(df1):
+                    r1 = df1.iloc[idx]
+                    r2 = None
+                else:
+                    r1 = None
+                    r2 = df2.iloc[idx - len(df1)]
+
+                fused_record = {}
+
+                for col1, col2 in selected_match_col:
+                    if r1 is not None and col1 in r1:
+                        fused_record[col1] = r1[col1]
+                    elif r2 is not None and col2 in r2:
+                        fused_record[col1] = r2[col2]
+                    else:
+                        fused_record[col1] = None
+
+                unmatched_cols1 = [col for col in df1.columns if col not in dict(selected_match_col).keys()]
+                unmatched_cols2 = [col for col in df2.columns if col not in dict(selected_match_col).values()]
+
+                for col in unmatched_cols1:
+                    fused_record[col] = r1[col] if r1 is not None else None
+                for col in unmatched_cols2:
+                    fused_record[col] = r2[col] if r2 is not None else None
+
+                fused_records.append(fused_record)
+
+            final_fused_df = pd.DataFrame(fused_records)
+
+            st.write("融合后的数据如下:")
+            st.dataframe(final_fused_df.head())
+
+            csv = convert_df_to_csv(final_fused_df)
             st.download_button(
-                label="Download as CSV",
+                label="下载csv文件",
                 data=csv,
                 file_name='merged_dataframe.csv',
                 mime='text/csv',
             )
+
     else:
-        st.write("It appears that your dataframes are empty. Please upload valid dataframes.")
-
-
+        st.write("所上传的数据集是空的，请重新上传")
 else:
-    st.write("Please upload or enter paths for both DataFrames.")
-
-##Add website and citation
-st.write(
-    "Note that this space only supports CPU usage and is only recommended on small datasets. If you have access to the GPU, check out our python [package](https://github.com/dell-research-harvard/linktransformer/)!")
-st.write(
-    "For more information and advanced usage, please visit the [LinkTransformer website](https://linktransformer.github.io/).")
-st.write(
-    "If you use LinkTransformer in your research, please cite the following paper: [LinkTransformer: A Unified Package for Record Linkage with Transformer Language Models](https://arxiv.org/abs/2309.00789)")
-
+    st.write("请重新上传")
