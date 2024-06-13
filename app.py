@@ -138,7 +138,7 @@ if df1_upload is not None and df2_upload is not None:
                     with cols[idx % 2]:  # 每两个图表换一列
                         plt.figure(figsize=fig_size)
                         plt.hist(merged_data[column], bins=20, color='skyblue', edgecolor='black')
-                        plt.title(f"{column} 数据分布直方图")
+                        plt.title(f"{column} Data distribution histogram")
                         plt.xlabel(column)
                         plt.ylabel("频数")
                         st.pyplot(plt)
@@ -152,7 +152,7 @@ if df1_upload is not None and df2_upload is not None:
                     with cols[idx % 2]:  # 每两个图表换一列
                         plt.figure(figsize=fig_size)
                         plt.plot(merged_data[column])
-                        plt.title(f"{column} 数据折线图")
+                        plt.title(f"{column} Data line chart")
                         plt.xlabel("索引")
                         plt.ylabel(column)
                         st.pyplot(plt)
