@@ -132,31 +132,38 @@ if df1_upload is not None and df2_upload is not None:
 
                 # 绘制直方图
                 st.header("数据分布直方图")
-                # 创建一个两列的布局
-                cols = st.columns(2)
-                for idx, column in enumerate(merged_data.columns):
-                    with cols[idx % 2]:  # 每两个图表换一列
-                        plt.figure(figsize=fig_size)
-                        plt.hist(merged_data[column], bins=20, color='skyblue', edgecolor='black')
-                        plt.title(f"{column} Data distribution histogram")
-                        plt.xlabel(column)
-                        plt.ylabel("Frequency")
-                        st.pyplot(plt)
-                        plt.close()
+                if not merged_data.empty:
+                    merged_data = merged_data.apply(pd.to_numeric, errors='coerce')
 
-                # 绘制折线图
-                st.header("折线图")
-                # 创建一个两列的布局
-                cols = st.columns(2)
-                for idx, column in enumerate(merged_data.columns):
-                    with cols[idx % 2]:  # 每两个图表换一列
-                        plt.figure(figsize=fig_size)
-                        plt.plot(merged_data[column])
-                        plt.title(f"{column} Data line chart")
-                        plt.xlabel("index")
-                        plt.ylabel(column)
-                        st.pyplot(plt)
-                        plt.close()
+                    merged_data = merged_data.dropna(axis=1, how='all')
+
+                    merged_data = merged_data.fillna(0)
+
+                    # 创建一个两列的布局
+                    cols = st.columns(2)
+                    for idx, column in enumerate(merged_data.columns):
+                        with cols[idx % 2]:  # 每两个图表换一列
+                            plt.figure(figsize=(10, 6))
+                            plt.hist(merged_data[column], bins=20, color='skyblue', edgecolor='black')
+                            plt.title(f"{column} Data distribution histogram")
+                            plt.xlabel(column)
+                            plt.ylabel("Frequency")
+                            st.pyplot(plt)
+                            plt.close()
+
+                    # 绘制折线图
+                    st.header("折线图")
+                    # 创建一个两列的布局
+                    cols = st.columns(2)
+                    for idx, column in enumerate(merged_data.columns):
+                        with cols[idx % 2]:  # 每两个图表换一列
+                            plt.figure(figsize=(10, 6))
+                            plt.plot(merged_data[column])
+                            plt.title(f"{column} Data line chart")
+                            plt.xlabel("index")
+                            plt.ylabel(column)
+                            st.pyplot(plt)
+                            plt.close()
 
             else:
                 st.write("所有属性均被丢弃，请重新选择要保留的属性")
