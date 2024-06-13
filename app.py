@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # 自定义实体匹配算法
 def custom_entity_matching(df1, df2, match_columns, drop_columns):
@@ -116,6 +117,26 @@ if df1_upload is not None and df2_upload is not None:
                     file_name='merged_dataframe.csv',
                     mime='text/csv',
                 )
+                # 绘制直方图
+                st.header("数据分布直方图")
+                for column in merged_data.columns:
+                    plt.figure(figsize=(8, 6))
+                    plt.hist(merged_data[column], bins=20, color='skyblue', edgecolor='black')
+                    plt.title(f"{column} 数据分布直方图")
+                    plt.xlabel(column)
+                    plt.ylabel("频数")
+                    st.pyplot(plt)
+
+                # 绘制折线图
+                st.header("折线图")
+                for column in merged_data.columns:
+                    plt.figure(figsize=(8, 6))
+                    plt.plot(merged_data[column])
+                    plt.title(f"{column} 数据折线图")
+                    plt.xlabel("索引")
+                    plt.ylabel(column)
+                    st.pyplot(plt)
+
             else:
                 st.write("所有属性均被丢弃，请重新选择要保留的属性")
         else:
