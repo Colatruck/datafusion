@@ -2,6 +2,13 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
+st.set_page_config(
+    page_title='IOT数据融合平台',
+)
+
+plt.rcParams['font.family'] = 'SimHei'
+plt.rcParams['axes.unicode_minus'] = False
+
 # 自定义实体匹配算法
 def custom_entity_matching(df1, df2, match_columns, drop_columns):
     # 自动检测匹配属性的可选列表
@@ -19,7 +26,10 @@ def custom_entity_matching(df1, df2, match_columns, drop_columns):
         return None
 
     # 根据用户选择的属性进行匹配
-    merged_data = pd.merge(df1, df2, on=match_columns, how='outer')  # 使用外连接以保留无法匹配的数据
+    if match_columns:
+        merged_data = pd.merge(df1, df2, on=match_columns, how='outer')  # 使用外连接以保留无法匹配的数据
+    else:
+        merged_data = pd.merge(df1, df2, how='outer')
 
     return merged_data
 
@@ -117,25 +127,36 @@ if df1_upload is not None and df2_upload is not None:
                     file_name='merged_dataframe.csv',
                     mime='text/csv',
                 )
+                # 设置图表的大小
+                fig_size = (6, 4)
+
                 # 绘制直方图
                 st.header("数据分布直方图")
-                for column in merged_data.columns:
-                    plt.figure(figsize=(8, 6))
-                    plt.hist(merged_data[column], bins=20, color='skyblue', edgecolor='black')
-                    plt.title(f"{column} 数据分布直方图")
-                    plt.xlabel(column)
-                    plt.ylabel("频数")
-                    st.pyplot(plt)
+                # 创建一个两列的布局
+                cols = st.columns(2)
+                for idx, column in enumerate(merged_data.columns):
+                    with cols[idx % 2]:  # 每两个图表换一列
+                        plt.figure(figsize=fig_size)
+                        plt.hist(merged_data[column], bins=20, color='skyblue', edgecolor='black')
+                        plt.title(f"{column} 数据分布直方图")
+                        plt.xlabel(column)
+                        plt.ylabel("频数")
+                        st.pyplot(plt)
+                        plt.close()
 
                 # 绘制折线图
                 st.header("折线图")
-                for column in merged_data.columns:
-                    plt.figure(figsize=(8, 6))
-                    plt.plot(merged_data[column])
-                    plt.title(f"{column} 数据折线图")
-                    plt.xlabel("索引")
-                    plt.ylabel(column)
-                    st.pyplot(plt)
+                # 创建一个两列的布局
+                cols = st.columns(2)
+                for idx, column in enumerate(merged_data.columns):
+                    with cols[idx % 2]:  # 每两个图表换一列
+                        plt.figure(figsize=fig_size)
+                        plt.plot(merged_data[column])
+                        plt.title(f"{column} 数据折线图")
+                        plt.xlabel("索引")
+                        plt.ylabel(column)
+                        st.pyplot(plt)
+                        plt.close()
 
             else:
                 st.write("所有属性均被丢弃，请重新选择要保留的属性")
