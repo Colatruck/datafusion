@@ -140,7 +140,7 @@ if df1_upload is not None and df2_upload is not None:
                         plt.hist(merged_data[column], bins=20, color='skyblue', edgecolor='black')
                         plt.title(f"{column} Data distribution histogram")
                         plt.xlabel(column)
-                        plt.ylabel("频数")
+                        plt.ylabel("Frequency")
                         st.pyplot(plt)
                         plt.close()
 
@@ -153,7 +153,7 @@ if df1_upload is not None and df2_upload is not None:
                         plt.figure(figsize=fig_size)
                         plt.plot(merged_data[column])
                         plt.title(f"{column} Data line chart")
-                        plt.xlabel("索引")
+                        plt.xlabel("index")
                         plt.ylabel(column)
                         st.pyplot(plt)
                         plt.close()
